@@ -1,0 +1,136 @@
+<body>
+<style>
+body{-webkit-app-region: no-drag;background: transparent url(bamboo.jpg) repeat;}
+#loading {left: 20%;top: 46%;position: absolute;}
+#main {-webkit-app-region: drag;text-align: center;font-family: Verdana;}
+td,th {padding: 0px 5px;}
+select {
+    padding:3px;
+    margin: 0;
+    -webkit-border-radius:4px;
+    -moz-border-radius:4px;
+    border-radius:4px;
+    -webkit-box-shadow: 0 3px 0 #ccc, 0 -1px #fff inset;
+    -moz-box-shadow: 0 3px 0 #ccc, 0 -1px #fff inset;
+    box-shadow: 0 3px 0 #ccc, 0 -1px #fff inset;
+    background: #f8f8f8;
+    color:#888;
+    border:none;
+    outline:none;
+    display: inline-block;
+    -webkit-appearance:none;
+    -moz-appearance:none;
+    appearance:none;
+    cursor:pointer;
+}
+
+/* Targetting Webkit browsers only. FF will show the dropdown arrow with so much padding. */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    select {padding-right:18px;width: 160px;}
+}
+
+label {position:relative}
+label:after {
+    content:'<>';
+    font:11px "Consolas", monospace;
+    color:#aaa;
+    -webkit-transform:rotate(90deg);
+    -moz-transform:rotate(90deg);
+    -ms-transform:rotate(90deg);
+    transform:rotate(90deg);
+    right:8px; top:2px;
+    padding:0 0 2px;
+    border-bottom:1px solid #ddd;
+    position:absolute;
+    pointer-events:none;
+}
+label:before {
+    content:'';
+    right:6px; top:0px;
+    width:20px; height:20px;
+    background:#f8f8f8;
+    position:absolute;
+    pointer-events:none;
+    display:block;
+}
+</style>
+<img id="loading" src="ajax-loader.gif"/>
+<table>
+<tbody><tr><td>
+<label>
+    <select id="city" onchange="getData(this.options[this.options.selectedIndex].value)">
+        <option selected> City </option>
+    </select>
+</label>
+</td><td>
+<label>
+    <select id="province" onchange ="getCity(this.options[this.options.selectedIndex].value)">
+        <option selected>Provence </option>
+    </select>
+</label>
+</td></tr></table>
+<div id="main"></div>
+<script>
+var inited = false;
+var licon = document.getElementById('loading'), m = document.getElementById('main')
+	, base = 'http://l.yimg.com/a/i/us/we/52/', item, c, f, init = function(json){
+	licon.style.display = 'none';
+	item = json.query.results.channel.item, 
+	c = item.condition, f = item.forecast;
+	var s = '';
+	s += '<h2>' + item.title.replace(/ at(.*)/, '').replace(/Conditions for /, '') + '</h2>';
+	s += '<img src="'+base+c.code+'.gif"/><br /><b>Current Conditions:</b><br />'+c.text+', '+c.temp+' C<BR /><BR />'
+	  +  '<table><thead><tr><th>' + ['', 'DAY', 'FORECAST', 'HIGH', 'LOW'].join('</th><th>')+ '</th></tr></thead><tbody>';
+	for(var i in f)
+		s += '<tr><td>' + ['<img src="' +base + f[i].code +'.gif"/>',f[i].day, f[i].text, f[i].high, f[i].low].join('</td><td>') + '</td></tr>';
+	m.innerHTML = s + '</tbody></table>';
+	setTimeout(function(){loaddata();}, 1000 * 60);
+	inited = true;
+}, loaddata = function (loc){
+	m.innerHTML = '';
+	getjsonp("select * from weather.forecast where woeid='"+ (loc || document.getElementById('city').value || 26198158 ) + "' and u='c'")
+}, getjsonp = function (sql, callback, params) {
+	licon.style.display = 'block';
+	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	ga.src = "http://query.yahooapis.com/v1/public/yql?q=__&format=json&_&callback=".replace(/__/, encodeURIComponent(sql)).replace(/_/, (params || '_')) + (callback || 'init');
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+}, initP = function(json){
+	options('province', json.query.results.place,inited ? 0: 8);
+}, initC = function(json){
+	options('city', json.query.results.place,inited ? 0: 8);
+}, getCity = function (p){
+	getjsonp('select woeid,name from geo.places.children(0,100) where lang = "zh-cn" and placetype=9 and parent_woeid = ' + p, 'initC');
+}, getData = function (c){
+	loaddata(c);
+}, options = function(id, names, did, callback) {
+	var o = '';
+	if (!names[0]) names = [names];
+	for (var i in names) 
+		o += '<option __ value="_">na</option>'.replace(/__/, (i == (did || 0)) ?'selected':'')
+			.replace(/_/, names[i].woeid).replace(/na/, names[i].name);
+	var dom = document.getElementById(id);
+	dom.innerHTML = o;
+	dom.onchange();
+	callback && callback(dom);
+	licon.style.display = 'none';
+}
+
+// Load native UI library
+var gui = require('nw.gui');
+var win = gui.Window.get();
+var tray;
+win.on('minimize', function(){
+	this.hide();
+	// Create a tray icon
+	tray = new gui.Tray({ title: 'Tray', icon: 'weather.png' });
+	tray.on('click', function(){
+		this.remove();
+		tray = null;
+		win.show();
+	})
+})
+getjsonp('select woeid,name from geo.places.children(0,100) where lang = "zh-cn" and parent_woeid =23424781 and placetype=8', 'initP');
+
+</script>
+
+</body>
