@@ -1,0 +1,16 @@
+{
+    "main": "index.html",
+    "name": "nw-weather",
+    "description": "weather of node-webkit",
+    "version": "0.1.0",
+    "keywords": [ "weather", "node-webkit" ],
+    "window": {
+        "icon": "weather.png",
+        "toolbar": false,
+        "width": 370,
+        "height": 520,
+        "frame": false,
+		"transparent": true
+    },
+    "user-agent": "%name %ver %nwver %webkit_ver %osinfo"
+}
